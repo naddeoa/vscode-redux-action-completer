@@ -4,7 +4,7 @@ import {
 } from 'vscode';
 import Plugin from './Plugin';
 
-let plugin;
+let plugin: Plugin;
 
 export function activate(context: ExtensionContext) {
     plugin = new Plugin([`${workspace.asRelativePath}/node_modules`]);

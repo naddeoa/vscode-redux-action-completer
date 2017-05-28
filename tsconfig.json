@@ -4,6 +4,7 @@
         "target": "es6",
         "outDir": "out",
         "strictNullChecks": true,
+        "strict": true,
         "lib": [
             "es6"
         ],

@@ -1,9 +1,8 @@
 import { TextDocument, TextEdit, Position, Range } from 'vscode';
-import * as  _ from "lodash/fp" ;
+import * as  _ from "lodash";
 import * as path from "path";
 import * as acorn from "acorn";
-import { Program } from "estree";
-
+import { Program, ExpressionStatement, Statement, ModuleDeclaration } from "estree";
 
 const acornOptions: acorn.Options = {
     sourceType: "module",
@@ -22,7 +21,7 @@ function tryParse(line: string): Program | null {
 }
 
 
-export function addImportToDocument(textDocument: TextDocument, moduleName: string, specifier: string) {
+export function addImportToDocument(textDocument: TextDocument, moduleName: string, specifier: string) : TextEdit {
     const existingImports = getImportsForModule(textDocument, moduleName);
 
     if (existingImports.length === 0) {
@@ -35,36 +34,45 @@ export function addImportToDocument(textDocument: TextDocument, moduleName: stri
         return NOOP_EDIT;
     }
 
-    const replaceRange = new Range(new Position(existingImports[0].loc.start.line - 1, existingImports[0].loc.start.column), new Position(existingImports[0].loc.end.line - 1, existingImports[0].loc.end.column));
-    return new TextEdit(replaceRange, renderImport(existingImports[0], moduleName, [specifier], false));
+    // Just work with the first one. There will only be multiples if the user has imported the
+    // same module multiple times.
+    const existingImport: (Statement | ModuleDeclaration) = existingImports[0];
+
+    // If we have location information in the parse from acorn then use it
+    if (existingImport.loc) {
+        const replaceRange = new Range(new Position(existingImport.loc.start.line - 1, existingImport.loc.start.column), new Position(existingImport.loc.end.line - 1, existingImport.loc.end.column));
+        return new TextEdit(replaceRange, renderImport(existingImports[0], moduleName, [specifier], false))
+    } else {
+        return TextEdit.insert(new Position(0, 0), renderImport(existingImports[0], moduleName, [specifier]));
+    }
 }
 
-function getImportsForModule(textDocument: TextDocument, moduleName: string): any[] {
+function getImportsForModule(textDocument: TextDocument, moduleName: string): (Statement | ModuleDeclaration)[] {
     return getImportStatementForModule(textDocument)
         .filter((node: any) => importStatementsEqual(node.source.value, moduleName))
 }
 
-function getImportStatementForModule(textDocument: TextDocument): object[] {
+function getImportStatementForModule(textDocument: TextDocument): (Statement | ModuleDeclaration)[] {
     const parse = tryParse(textDocument.getText());
-    if (!parse) {
+    if (parse === null) {
         return [];
     }
 
-    return _.flow(
-        _.filter(node => node.type === "ImportDeclaration")
-    )(parse.body)
+    return _.chain(parse.body)
+        .filter(node => node.type === "ImportDeclaration")
+        .value();
 }
 
 function renderImport(importStatement: any, moduleName: string, extraSpecifiers: string[], newline = true): string {
-    const specifiers = `{${importStatement.specifiers.map(specifier => specifier.imported.name).concat(extraSpecifiers).join(", ")}}`;
+    const specifiers = `{${importStatement.specifiers.map((  specifier: any )=> specifier.imported.name).concat(extraSpecifiers).join(", ")}}`;
     return `import ${specifiers} from "${moduleName}"${newline ? '\n' : ''}`;
 }
 
 function importContainsSpecifier(importNodes: any[], specifier: string) {
-    return _.flow(
-        _.flatMap(importNode => importNode.specifiers),
-        _.any(specifierNode => specifierNode.imported.name === specifier)
-    )(importNodes);
+    return _.chain(importNodes)
+        .flatMap(importNode => importNode.specifiers)
+        .filter( (specifierNode : any) => specifierNode.imported.name === specifier)
+        .value().length > 0;
 }
 
 function importStatementsEqual(i1: string, i2: string): boolean {

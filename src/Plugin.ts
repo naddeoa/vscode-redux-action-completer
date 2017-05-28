@@ -1,5 +1,5 @@
 import ActionCompleter from './ActionCompleter';
-import * as _ from "lodash/fp";
+import { flatMap } from "lodash";
 import { Import, createImport } from "./Import";
 import {
     Uri,
@@ -15,7 +15,7 @@ export default class Plugin implements Disposable {
     private readonly config: WorkspaceConfiguration;
     public disposables: Disposable
 
-    constructor(nodePath) {
+    constructor(nodePath: string[]) {
         this.nodePath = nodePath;
         this.config = workspace.getConfiguration("actionfinder");
         this.setup();
@@ -55,9 +55,9 @@ export default class Plugin implements Disposable {
             return { moduleName, files }
         }));
 
-        return _.flatMap((moduleLookup: ModuleLookupListing) => {
+        return flatMap(modules, (moduleLookup: ModuleLookupListing) => {
             return moduleLookup.files.map((file: Uri) => createImport(file, this.require(file.fsPath), moduleLookup.moduleName));
-        })(modules);
+        });
     }
 
     dispose() {

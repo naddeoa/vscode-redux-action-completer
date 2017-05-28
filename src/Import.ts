@@ -1,7 +1,7 @@
 import { Uri } from "vscode";
 import * as p from "path";
 
-function basename(filepath) {
+function basename(filepath: string) {
     return p.basename(filepath, p.extname(filepath));
 };
 
@@ -31,7 +31,7 @@ export function createImport({ fsPath: path }: Uri, module: any, moduleName: str
 }
 
 function deriveImportName(path: string, moduleName: string): string {
-    const parse  = p.parse(path);
+    const parse = p.parse(path);
     const reg = new RegExp(`${moduleName}.*`);
     const match = reg.exec(parse.dir);
 
