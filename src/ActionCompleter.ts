@@ -1,6 +1,6 @@
 import { Import, createImport } from "./Import";
 import * as _ from "lodash/fp";
-import {getImportStatementForModule} from "./DocumentUtils";
+import { addImportToDocument } from "./DocumentUtils";
 import {
     TextDocument,
     CompletionItemProvider,
@@ -21,17 +21,14 @@ export default class ActionCompleter implements CompletionItemProvider {
         this.imports = imports;
     }
 
-    provideCompletionItems(document: TextDocument, position: Position, token: CancellationToken): ProviderResult<CompletionItem[] | CompletionList> {
-        if (document.lineAt(position.line).text.search("dispatch") !== -1) {
+    provideCompletionItems(textDocument: TextDocument, position: Position, token: CancellationToken): ProviderResult<CompletionItem[] | CompletionList> {
+        if (textDocument.lineAt(position.line).text.search("dispatch") !== -1) {
             return _.flatMap((imp: Import) => imp.actions.map((action: string) => {
-                getImportStatementForModule("");
-
-                const importStatement = TextEdit.insert(new Position(0,0), `import * as ACTIONS from "huddles-redux-store/actions/${imp.name}";\n`);
 
                 const item = new CompletionItem(action, CompletionItemKind.Function)
-                item.detail = imp.name;
-                item.additionalTextEdits = [importStatement];
-                item.filterText = `__${imp.name}`;
+                item.detail = imp.fileName;
+                item.additionalTextEdits = [addImportToDocument(textDocument, imp.importName, action)];
+                item.filterText = `__${imp.fileName}`;
                 item.documentation = "Redux action for Huddles";
                 return item;
             }))(this.imports);

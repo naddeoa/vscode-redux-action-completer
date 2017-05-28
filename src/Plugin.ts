@@ -50,12 +50,14 @@ export default class Plugin implements Disposable {
      * Find all actions in the modules of this project.
      */
     private async getActions(): Promise<Import[]> {
-        const files = await Promise.all(this.getActionModules().map((module: string) => workspace.findFiles(`node_modules/${module}/**/*Actions.js`)));
+        const modules: ModuleLookupListing[] = await Promise.all(this.getActionModules().map(async (moduleName: string) => {
+            const files = await workspace.findFiles(`node_modules/${moduleName}/**/*Actions.js`);
+            return { moduleName, files }
+        }));
 
-        return _.flow(
-            _.flatten,
-            _.map((file: Uri) => createImport(file, this.require(file.fsPath)))
-        )(files);
+        return _.flatMap((moduleLookup: ModuleLookupListing) => {
+            return moduleLookup.files.map((file: Uri) => createImport(file, this.require(file.fsPath), moduleLookup.moduleName));
+        })(modules);
     }
 
     dispose() {
@@ -63,3 +65,12 @@ export default class Plugin implements Disposable {
     }
 }
 
+
+
+/**
+ * DTO for mapping files/modules to retain some context
+ */
+interface ModuleLookupListing {
+    moduleName: string,
+    files: Uri[]
+}
