@@ -1,9 +1,9 @@
 {
-  "name": "actionfinder",
-  "displayName": "vscode-scroll-percentage-plugin",
-  "description": "Shows the percent position in the page",
+  "name": "redux-action-completer",
+  "displayName": "Redux action completer",
+  "description": "Autocomplete actions when dispatching",
   "version": "0.0.1",
-  "publisher": "whatever",
+  "publisher": "naddeo",
   "engines": {
     "vscode": "^1.12.0"
   },
@@ -11,7 +11,6 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:naddeo.hello",
     "onLanguage:javascript"
   ],
   "main": "./out/src/extension",
@@ -24,15 +23,22 @@
     ],
     "configuration": {
       "type": "object",
-      "title": "Redux action finder",
+      "title": "Redux action completer",
       "properties": {
-        "modules": {
+        "redux-action-finder.modules": {
           "type": "array",
-          "default": [
-            "uuid",
-            "typescript"
-          ],
+          "default": [],
           "description": "Modules to search for actions"
+        },
+        "redux-aciton-finder.fileGlobs": {
+          "type": "array",
+          "default": [],
+          "description": "Glob patterns to match file names that contain actions"
+        },
+        "redux-aciton-finder.nodeModulePaths": {
+          "type": "array",
+          "default": ["node_modules"],
+          "description": "The paths of node module folders. Pretty much the same as the NODE_MODULES env variable."
         }
       }
     }
