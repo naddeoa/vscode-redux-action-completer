@@ -6,7 +6,7 @@ function basename(filepath: string) {
 };
 
 /**
- * @param path The file path for this module. i.e. "/path/to/my-app/src/MyModule".
+ * @param path The file path for this module. i.e. "/path/to/my-app/src/actions/MyModule".
  * @param fileName The file name of this module. i.e. "MyModule.js".
  * @param moduleName The name of the module. i.e. "my-app".
  * @param actions The actions inside of this module. It is assumed that everything exported from it are action creators/actions.
@@ -30,6 +30,13 @@ export function createImport({ fsPath: path }: Uri, module: any, moduleName: str
     };
 }
 
+/**
+ * Given a path and a module name, derive what a user would need to type if
+ * they were to import it into their project.
+ * @param path Full path to a file, i.e. "/path/to/my-app/src/actions/MyModule".
+ * @param moduleName The name of the module that this file resides in. i.e. "my-app".
+ * @returns Something like "my-app/actions/SomeActions".
+ */
 function deriveImportName(path: string, moduleName: string): string {
     const parse = p.parse(path);
     const reg = new RegExp(`${moduleName}.*`);
