@@ -28,6 +28,7 @@ export default class Plugin implements Disposable {
     private require(path: string) {
         const previousPath = process.env["NODE_PATH"];
         process.env["NODE_PATH"] = this.getNodeModulePaths().join(":");
+        delete require.cache[path];
         const module = require(path);
         process.env["NODE_PATH"] = previousPath;
         return module;

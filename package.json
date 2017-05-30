@@ -17,8 +17,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "naddeo.hello",
-        "title": "Naddeo"
+        "command": "redux-action-finder.commands.refresh",
+        "title": "RAC: Refresh. Useful after updating node modules."
       }
     ],
     "configuration": {
