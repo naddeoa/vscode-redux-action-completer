@@ -1,4 +1,4 @@
-import { TextDocument, TextEdit, Position, Range } from 'vscode';
+import { Disposable, TextDocument, TextEdit, TextDocumentChangeEvent, Position, Range, workspace } from 'vscode';
 import * as  _ from "lodash";
 import * as path from "path";
 import * as acorn from "acorn";
@@ -49,7 +49,6 @@ type SuccessfulParse = {
 
 export type Imports = Import[];
 
-
 export interface Import {
     importDeclaration: ImportDeclaration
 }
@@ -59,13 +58,46 @@ const OPTIONS: acorn.Options = {
     locations: true
 };
 
-function tryParse(documentText: string): ParseResult {
-    try {
-        return { type: "SuccessfulParse", value: acorn.parse(documentText, OPTIONS) };
-    } catch (e) {
-        return FAILED_PARSE;
+class Parser {
+
+    private readonly parseCache = new Map<TextDocument, Program>();
+    private readonly disposables: Disposable;
+
+    constructor() {
+        this.disposables = Disposable.from(workspace.onDidChangeTextDocument(e => this.parseCache.delete(e.document)));
+    }
+
+    private tryParse(doc: TextDocument): ParseResult {
+        // If we have a cached parse then use that instead of reparsing
+        const cachedParse = this.parseCache.get(doc);
+        if (cachedParse) {
+            return { type: "SuccessfulParse", value: cachedParse };
+        }
+
+        try {
+            const parse = acorn.parse(doc.getText(), OPTIONS)
+            this.parseCache.set(doc, parse);
+            return { type: "SuccessfulParse", value: parse };
+        } catch (e) {
+            return FAILED_PARSE;
+        }
+    }
+
+    parse(textDocument: TextDocument): Module {
+        const parse = this.tryParse(textDocument);
+
+        switch (parse.type) {
+            case "FailedParse": return new Module(textDocument, FAILED_PARSE);
+            case "SuccessfulParse": return new Module(textDocument, parse);
+        }
+    }
+
+    dispose() {
+        this.disposables.dispose();
     }
 }
+
+export default new Parser();
 
 export function getLocationData(imp: Import): SourceLocation | null {
     const specifierNode: SourceLocation | null | undefined = imp.importDeclaration.loc
@@ -76,7 +108,6 @@ export function getLocationData(imp: Import): SourceLocation | null {
         return specifierNode;
     }
 }
-
 
 export function containsSpecifier(imports: Imports, specifier: string): boolean {
     return _.chain(imports)
@@ -133,15 +164,6 @@ export function renderImport(data: ImportRender): string {
         }
     }).concat(data.extraSpecifiers).join(", ");
     return `import {${specifierString}} from "${data.moduleSource}"${data.newline ? '\n' : ''}`;
-}
-
-export function parse(textDocument: TextDocument): Module {
-    const parse = tryParse(textDocument.getText());
-
-    switch (parse.type) {
-        case "FailedParse": return new Module(textDocument, FAILED_PARSE);
-        case "SuccessfulParse": return new Module(textDocument, parse);
-    }
 }
 
 function importContainsSpecifier(importNodes: Imports, specifier: string): boolean {

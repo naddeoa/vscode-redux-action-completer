@@ -3,12 +3,12 @@ import * as  _ from "lodash";
 import * as path from "path";
 import * as acorn from "acorn";
 import { Program, ExpressionStatement, Statement, ModuleDeclaration } from "estree";
-import { Module, parse, containsSpecifier, Import, getLocationData, ImportRender, renderImport } from "./parsing/Parser"
+import parser, { Module, containsSpecifier, Import, getLocationData, ImportRender, renderImport } from "./parsing/Parser"
 
 const NOOP_EDIT = TextEdit.insert(new Position(0, 0), "");
 
 export function addImportToDocument(textDocument: TextDocument, moduleName: string, specifier: string): TextEdit {
-    const module: Module = parse(textDocument);
+    const module: Module = parser.parse(textDocument);
 
     const existingImports = module.getImportsForModule(moduleName);
 

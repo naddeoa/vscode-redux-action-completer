@@ -1,4 +1,5 @@
 import { ExtensionContext, workspace, commands } from 'vscode';
+import parser from './parsing/Parser';
 import Plugin from './Plugin';
 
 let plugin: Plugin;
@@ -16,4 +17,5 @@ export function activate(context: ExtensionContext) {
 
 export function deactivate() {
     plugin.dispose();
+    parser.dispose();
 }
