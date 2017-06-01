@@ -1,4 +1,5 @@
 import { Disposable, TextDocument, TextEdit, TextDocumentChangeEvent, Position, Range, workspace } from 'vscode';
+import * as ast from "./ast";
 import * as  _ from "lodash";
 import * as path from "path";
 import * as acorn from "acorn";
@@ -24,7 +25,7 @@ export class Module {
         }
     }
 
-    getImportsForModule(targetModule: string) {
+    getImportsForModule(targetModule: string): Imports {
         switch (this.parse.type) {
             case "FailedParse": return [];
             case "SuccessfulParse": {
@@ -153,33 +154,23 @@ function isImportNamespaceSpecifier(specifierNode: ImportSpecifier | ImportDefau
 }
 
 export type ImportRender = {
-    importStatement?: Import,
-    moduleSource?: string,
+    importStatementOrSource: Import | string,
     extraSpecifiers: string[],
-    newline: boolean
+    newline?: boolean
 }
 
 export function renderImport(data: ImportRender): string {
-    let specifiers: (ImportSpecifier | ImportDefaultSpecifier | ImportNamespaceSpecifier)[];
-    let moduleSource: string;
-    if (!data.importStatement) {
-        specifiers = [];
-        moduleSource = data.moduleSource || "unknown";
+    let rendered: string;
+    if (typeof data.importStatementOrSource === "string") {
+        const importDeclaration: ImportDeclaration = ast.createImportDeclaration(data.importStatementOrSource, data.extraSpecifiers);
+        rendered = escodegen.generate(importDeclaration, { format: { indent: { style: " " } } }).replace(/\n/g, "");
     } else {
-        specifiers = data.importStatement.importDeclaration.specifiers
-        moduleSource = data.moduleSource || new String(data.importStatement.importDeclaration.source.value).toString();
+
+        const newImport = ast.addSpecifiersToImport(data.importStatementOrSource.importDeclaration, ast.createImportSpecifiers(data.extraSpecifiers));
+        rendered = escodegen.generate(newImport, { format: { indent: { style: " " } } }).replace(/\n/g, "");
     }
 
-    const specifierString: string = specifiers.map((specifier: ImportSpecifier | ImportDefaultSpecifier | ImportNamespaceSpecifier) => {
-        if (isImportSpecifier(specifier)) {
-            return specifier.imported.name;
-        } else if (isImportDefaultSpecifier(specifier)) {
-            return "";
-        } else if (isImportNamespaceSpecifier(specifier)) {
-            return "";
-        }
-    }).concat(data.extraSpecifiers).join(", ");
-    return `import {${specifierString}} from "${data.moduleSource}"${data.newline ? '\n' : ''}`;
+    return `${rendered}${data.newline ? "\n" : ""}`;
 }
 
 function importContainsSpecifier(importNodes: Imports, specifier: string): boolean {

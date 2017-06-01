@@ -15,10 +15,10 @@ export function addImportToDocument(textDocument: TextDocument, moduleName: stri
     if (existingImports.length === 0) {
         // No existing imports for this module
         const renderedImport = renderImport({
-            moduleSource: moduleName,
+            importStatementOrSource: moduleName,
             extraSpecifiers: [specifier],
             newline: true
-        })
+        });
         return TextEdit.insert(new Position(0, 0), renderedImport);
     }
 
@@ -35,19 +35,15 @@ export function addImportToDocument(textDocument: TextDocument, moduleName: stri
     // If we have location information in the parse from acorn then use it
     if (locationData) {
         const renderedImport = renderImport({
-            importStatement: existingImport,
-            moduleSource: moduleName,
-            extraSpecifiers: [specifier],
-            newline: false
+            importStatementOrSource: existingImport,
+            extraSpecifiers: [specifier]
         })
         const replaceRange = new Range(new Position(locationData.start.line - 1, locationData.start.column), new Position(locationData.end.line - 1, locationData.end.column));
         return new TextEdit(replaceRange, renderedImport)
     } else {
         const renderedImport = renderImport({
-            importStatement: existingImport,
-            moduleSource: moduleName,
-            extraSpecifiers: [specifier],
-            newline: false
+            importStatementOrSource: existingImport,
+            extraSpecifiers: [specifier]
         })
         return TextEdit.insert(new Position(0, 0), renderedImport);
     }
