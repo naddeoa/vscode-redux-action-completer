@@ -37,17 +37,23 @@
         },
         "redux-aciton-finder.nodeModulePaths": {
           "type": "array",
-          "default": ["node_modules"],
+          "default": [
+            "node_modules"
+          ],
           "description": "The paths of node module folders. Pretty much the same as the NODE_MODULES env variable."
         },
         "redux-aciton-finder.localFileGlobs": {
           "type": "array",
-          "default": ["src/**/*Actions.js"],
+          "default": [
+            "src/**/*Actions.js"
+          ],
           "description": "Glob patterns to match local action files to."
         },
         "redux-aciton-finder.localSourceDir": {
           "type": "array",
-          "default": ["src"],
+          "default": [
+            "src"
+          ],
           "description": "Directory that local source is stored in for the active project."
         },
         "redux-aciton-finder.localSourceType": {
@@ -73,8 +79,10 @@
   },
   "dependencies": {
     "@types/acorn": "^4.0.2",
+    "@types/escodegen": "0.0.6",
     "@types/lodash": "^4.14.64",
     "acorn": "^4.0.13",
+    "escodegen": "^1.8.1",
     "lodash": "^4.17.4"
   }
 }

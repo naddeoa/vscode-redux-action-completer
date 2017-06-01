@@ -2,7 +2,8 @@ import { Disposable, TextDocument, TextEdit, TextDocumentChangeEvent, Position, 
 import * as  _ from "lodash";
 import * as path from "path";
 import * as acorn from "acorn";
-import { SourceLocation, ImportSpecifier, ImportDefaultSpecifier, ImportNamespaceSpecifier, Literal, Program, ExpressionStatement, Statement, ModuleDeclaration, ImportDeclaration } from "estree";
+import * as escodegen from "escodegen";
+import { Comment, SourceLocation, ImportSpecifier, ImportDefaultSpecifier, ImportNamespaceSpecifier, Literal, Program, ExpressionStatement, Statement, ModuleDeclaration, ImportDeclaration } from "estree";
 
 
 export class Module {
@@ -44,6 +45,8 @@ const FAILED_PARSE: FailedParse = { type: "FailedParse" };
 
 type SuccessfulParse = {
     type: "SuccessfulParse",
+    comments: acorn.Comment[],
+    tokens: acorn.Token[],
     value: Program
 };
 
@@ -53,14 +56,19 @@ export interface Import {
     importDeclaration: ImportDeclaration
 }
 
-const OPTIONS: acorn.Options = {
-    sourceType: "module",
-    locations: true
-};
+
+function getParseOptions(options: acorn.Options = {}): acorn.Options {
+    return Object.assign({}, {
+        sourceType: "module",
+        locations: true,
+        ranges: true,
+    }, options);
+
+}
 
 class Parser {
 
-    private readonly parseCache = new Map<TextDocument, Program>();
+    private readonly parseCache = new Map<TextDocument, SuccessfulParse>();
     private readonly disposables: Disposable;
 
     constructor() {
@@ -71,14 +79,22 @@ class Parser {
         // If we have a cached parse then use that instead of reparsing
         const cachedParse = this.parseCache.get(doc);
         if (cachedParse) {
-            return { type: "SuccessfulParse", value: cachedParse };
+            return cachedParse;
         }
 
         try {
-            const parse = acorn.parse(doc.getText(), OPTIONS)
-            this.parseCache.set(doc, parse);
-            return { type: "SuccessfulParse", value: parse };
+            const onComment: acorn.Comment[] = [];
+            const onToken: acorn.Token[] = [];
+            const parseOptions = getParseOptions({
+                onToken, onComment
+            })
+            const parse = acorn.parse(doc.getText(), parseOptions);
+            const results: SuccessfulParse = { type: "SuccessfulParse", value: parse, comments: onComment, tokens: onToken };
+            this.parseCache.set(doc, results);
+            escodegen.attachComments(parse, onComment, onToken);
+            return results;
         } catch (e) {
+            console.log(e);
             return FAILED_PARSE;
         }
     }
