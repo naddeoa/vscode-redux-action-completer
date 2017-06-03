@@ -1,9 +1,6 @@
-import { TextDocument, TextEdit, Position, Range } from 'vscode';
-import * as  _ from "lodash";
-import * as path from "path";
-import * as acorn from "acorn";
-import { Program, ExpressionStatement, Statement, ModuleDeclaration } from "estree";
-import parser, { Module, containsSpecifier, Import, getLocationData, ImportRender, renderImport } from "./parsing/Parser"
+import parser, { containsSpecifier, getLocationData, ParsedImport, Module } from './parsing/Parser';
+import { renderImport } from './parsing/Renderer';
+import { Position, Range, TextDocument, TextEdit } from 'vscode';
 
 const NOOP_EDIT = TextEdit.insert(new Position(0, 0), "");
 
@@ -29,7 +26,7 @@ export function addImportToDocument(textDocument: TextDocument, moduleName: stri
 
     // Just work with the first one. There will only be multiples if the user has imported the
     // same module multiple times.
-    const existingImport: Import = existingImports[0];
+    const existingImport: ParsedImport = existingImports[0];
     const locationData = getLocationData(existingImport);
 
     // If we have location information in the parse from acorn then use it

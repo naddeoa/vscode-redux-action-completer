@@ -1,4 +1,4 @@
-import { SimpleLiteral, ImportSpecifier, ImportDeclaration, Identifier } from "estree";
+import { Identifier, ImportDeclaration, ImportSpecifier, SimpleLiteral } from 'estree';
 
 
 export function createImportSpecifiers(names: string[]): ImportSpecifier[] {

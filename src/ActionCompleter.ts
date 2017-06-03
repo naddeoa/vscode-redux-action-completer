@@ -1,4 +1,4 @@
-import { Import, createImport } from "./Import";
+import { GeneratedImport, createGeneratedImport } from "./GeneratedImport";
 import { flatMap } from "lodash";
 import { addImportToDocument } from "./DocumentUtils";
 import {
@@ -15,21 +15,21 @@ import {
 
 export default class ActionCompleter implements CompletionItemProvider {
 
-    private readonly imports: Import[];
+    private readonly imports: GeneratedImport[];
 
-    constructor(imports: Import[]) {
+    constructor(imports: GeneratedImport[]) {
         this.imports = imports;
     }
 
     provideCompletionItems(textDocument: TextDocument, position: Position, token: CancellationToken): ProviderResult<CompletionItem[] | CompletionList> {
         if (textDocument.lineAt(position.line).text.search("dispatch") !== -1) {
-            return flatMap(this.imports, (imp: Import) => imp.actions.map((action: string) => {
+            return flatMap(this.imports, (generatedImport: GeneratedImport) => generatedImport.actions.map((action: string) => {
 
                 const item = new CompletionItem(action, CompletionItemKind.Function)
-                item.detail = imp.fileName;
-                item.additionalTextEdits = [addImportToDocument(textDocument, imp.importName, action)];
-                item.filterText = `__${imp.fileName}`;
-                item.documentation = "Redux action for Huddles";
+                item.detail = generatedImport.fileName;
+                item.additionalTextEdits = [addImportToDocument(textDocument, generatedImport.getImportName(textDocument), action)];
+                item.filterText = `__${generatedImport.fileName}`;
+                item.documentation = `Redux action declared in ${generatedImport.moduleName}`;
                 return item;
             }));
         }

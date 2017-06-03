@@ -1,10 +1,19 @@
-import { Disposable, TextDocument, TextEdit, TextDocumentChangeEvent, Position, Range, workspace } from 'vscode';
-import * as ast from "./ast";
-import * as  _ from "lodash";
-import * as path from "path";
-import * as acorn from "acorn";
-import * as escodegen from "escodegen";
-import { Comment, SourceLocation, ImportSpecifier, ImportDefaultSpecifier, ImportNamespaceSpecifier, Literal, Program, ExpressionStatement, Statement, ModuleDeclaration, ImportDeclaration } from "estree";
+import {
+    Comment,
+    ImportDeclaration,
+    ImportDefaultSpecifier,
+    ImportNamespaceSpecifier,
+    ImportSpecifier,
+    Program,
+    SourceLocation,
+    ExportNamedDeclaration,
+    ExportDefaultDeclaration
+} from 'estree';
+import * as acorn from 'acorn';
+import * as escodegen from 'escodegen';
+import * as _ from 'lodash';
+import * as path from 'path';
+import { Disposable, TextDocument, workspace } from 'vscode';
 
 
 export class Module {
@@ -16,7 +25,7 @@ export class Module {
         this.parse = parse;
     }
 
-    getImports(): Imports {
+    getImports(): ParsedImports {
         switch (this.parse.type) {
             case "FailedParse": return [];
             case "SuccessfulParse": {
@@ -25,7 +34,7 @@ export class Module {
         }
     }
 
-    getImportsForModule(targetModule: string): Imports {
+    getImportsForModule(targetModule: string): ParsedImports {
         switch (this.parse.type) {
             case "FailedParse": return [];
             case "SuccessfulParse": {
@@ -33,6 +42,15 @@ export class Module {
             }
         }
 
+    }
+
+    getExports(): ParsedExports {
+        switch (this.parse.type) {
+            case "FailedParse": return [];
+            case "SuccessfulParse": {
+                return getAllExports(this.parse);
+            }
+        }
     }
 }
 
@@ -51,12 +69,47 @@ type SuccessfulParse = {
     value: Program
 };
 
-export type Imports = Import[];
+export type ParsedImports = ParsedImport[];
 
-export interface Import {
+export interface ParsedImport {
     importDeclaration: ImportDeclaration
 }
 
+
+export type ParsedExports = ParsedExport[];
+
+export interface ParsedExport {
+    exportDeclaration: ExportNamedDeclaration | ExportDefaultDeclaration
+}
+
+export function getExportName(exp: ParsedExport): string[] {
+    const declaration = exp.exportDeclaration.declaration;
+    if (!declaration) {
+        return [];
+    }
+
+    switch (declaration.type) {
+        case "VariableDeclaration":
+            return _.flatMap(declaration.declarations, (dec => {
+                switch (dec.id.type) {
+                    case "Identifier":
+                        return [dec.id.name];
+                    default:
+                        return [];
+
+                }
+            }));
+        case "FunctionDeclaration":
+            switch (declaration.id.type) {
+                case "Identifier":
+                    return [declaration.id.name];
+                default:
+                    return [];
+            }
+        default:
+            return [];
+    }
+}
 
 function getParseOptions(options: acorn.Options = {}): acorn.Options {
     return Object.assign({}, {
@@ -92,12 +145,20 @@ class Parser {
             const parse = acorn.parse(doc.getText(), parseOptions);
             const results: SuccessfulParse = { type: "SuccessfulParse", value: parse, comments: onComment, tokens: onToken };
             this.parseCache.set(doc, results);
-            escodegen.attachComments(parse, onComment, onToken);
+            // escodegen.attachComments(parse, onComment, onToken);
             return results;
         } catch (e) {
             console.log(e);
             return FAILED_PARSE;
         }
+    }
+
+    private extractText(thing: string | TextDocument) {
+        if (typeof thing === "string") {
+            return thing;
+        }
+
+        return thing.getText();
     }
 
     parse(textDocument: TextDocument): Module {
@@ -116,7 +177,7 @@ class Parser {
 
 export default new Parser();
 
-export function getLocationData(imp: Import): SourceLocation | null {
+export function getLocationData(imp: ParsedImport): SourceLocation | null {
     const specifierNode: SourceLocation | null | undefined = imp.importDeclaration.loc
 
     if (specifierNode === null || specifierNode === undefined) {
@@ -126,7 +187,7 @@ export function getLocationData(imp: Import): SourceLocation | null {
     }
 }
 
-export function containsSpecifier(imports: Imports, specifier: string): boolean {
+export function containsSpecifier(imports: ParsedImports, specifier: string): boolean {
     return _.chain(imports)
         .flatMap(importNode => importNode.importDeclaration.specifiers)
         .filter((specifierNode: ImportSpecifier | ImportDefaultSpecifier | ImportNamespaceSpecifier) => {
@@ -153,27 +214,7 @@ function isImportNamespaceSpecifier(specifierNode: ImportSpecifier | ImportDefau
     return specifierNode.type === "ImportNamespaceSpecifier";
 }
 
-export type ImportRender = {
-    importStatementOrSource: Import | string,
-    extraSpecifiers: string[],
-    newline?: boolean
-}
-
-export function renderImport(data: ImportRender): string {
-    let rendered: string;
-    if (typeof data.importStatementOrSource === "string") {
-        const importDeclaration: ImportDeclaration = ast.createImportDeclaration(data.importStatementOrSource, data.extraSpecifiers);
-        rendered = escodegen.generate(importDeclaration, { format: { indent: { style: " " } } }).replace(/\n/g, "");
-    } else {
-
-        const newImport = ast.addSpecifiersToImport(data.importStatementOrSource.importDeclaration, ast.createImportSpecifiers(data.extraSpecifiers));
-        rendered = escodegen.generate(newImport, { format: { indent: { style: " " } } }).replace(/\n/g, "");
-    }
-
-    return `${rendered}${data.newline ? "\n" : ""}`;
-}
-
-function importContainsSpecifier(importNodes: Imports, specifier: string): boolean {
+function importContainsSpecifier(importNodes: ParsedImports, specifier: string): boolean {
     return _.chain(importNodes)
         .flatMap(importNode => importNode.importDeclaration.specifiers)
         .filter((specifierNode: any) => specifierNode.imported.name === specifier)
@@ -186,16 +227,24 @@ function importStatementsEqual(i1: string, i2: string): boolean {
     return (parse1.dir === parse2.dir) && (parse1.name === parse2.name);
 }
 
-function getAllImports(parse: SuccessfulParse): Imports {
+function getAllImports(parse: SuccessfulParse): ParsedImports {
     return _.chain(parse.value.body)
         .filter(node => node.type === "ImportDeclaration")
         .map(node => <ImportDeclaration>node)
-        .map((node: ImportDeclaration) => { return { importDeclaration: node } })
+        .map((node: ImportDeclaration) => ({ importDeclaration: node }))
         .value();
 }
 
-function getImportsForModule(targetModuleName: string, parse: SuccessfulParse): Imports {
+function getAllExports(parse: SuccessfulParse): ParsedExports {
+    return _.chain(parse.value.body)
+        .filter(node => node.type === "ExportNamedDeclaration")
+        .map(node => <ExportNamedDeclaration>node)
+        .map((node: ExportNamedDeclaration) => ({ exportDeclaration: node }))
+        .value();
+}
+
+function getImportsForModule(targetModuleName: string, parse: SuccessfulParse): ParsedImports {
     return _.chain(getAllImports(parse))
-        .filter((node: Import) => importStatementsEqual(new String(node.importDeclaration.source.value).toString(), targetModuleName))
+        .filter((node: ParsedImport) => importStatementsEqual(new String(node.importDeclaration.source.value).toString(), targetModuleName))
         .value();
 }
