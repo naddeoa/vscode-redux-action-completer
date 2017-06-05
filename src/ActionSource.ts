@@ -1,6 +1,5 @@
 import { Uri, window, workspace, TextDocument } from "vscode";
 import * as p from "path";
-import { SourceType } from "./actions";
 
 function basename(filepath: string) {
     return p.basename(filepath, p.extname(filepath));

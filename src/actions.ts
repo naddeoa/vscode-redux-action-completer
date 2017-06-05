@@ -26,16 +26,20 @@ export async function getActions(plugin: Plugin): Promise<ActionSource[]> {
  * @param localListings 
  * @param requireFn 
  */
-async function getAllImports(local: boolean, listings: ModuleLookupListing[], requireFn: (path: string) => any): Promise<ActionSource[]> {
+async function getAllImports(local: boolean, listings: FileListing[], requireFn: (path: string) => any): Promise<ActionSource[]> {
 
-    const imports: Promise<ActionSource[]>[] = flatMap(listings, async (moduleLookup: ModuleLookupListing) => {
+    const imports: Promise<ActionSource[]>[] = flatMap(listings, async (moduleLookup: FileListing) => {
         try {
             return moduleLookup.files.map((file: Uri) => createGeneratedImport(local, file, Object.keys(requireFn(file.fsPath)), moduleLookup.moduleName));
         } catch (e) {
             console.error("Probably failed to require the file because it uses es2015. Will attempt to parse it next.", e);
         }
 
-        return extractImports(local, moduleLookup);
+        try{
+            return extractActionSources(local, moduleLookup);
+        } catch(e){
+            window.showWarningMessage(`Could not get actions for ${moduleLookup.moduleName}, skipping it.`);
+        }
     });
 
     return flatten(await Promise.all(imports));
@@ -46,7 +50,7 @@ async function getAllImports(local: boolean, listings: ModuleLookupListing[], re
  * @param localFileGlobs 
  * @param localSourceDir 
  */
-async function generateLocalListings(localFileGlobs: string[], localSourceDir: string): Promise<ModuleLookupListing[]> {
+async function generateLocalListings(localFileGlobs: string[], localSourceDir: string): Promise<FileListing[]> {
     return Promise.all(localFileGlobs.map(async (glob: string) => {
         const files = await workspace.findFiles(`${localSourceDir}/${glob}`, "node_modules"); // TODO exclude multiple node modules from plugin.getNodeModulePaths
         return { moduleName: localSourceDir, files };
@@ -55,12 +59,11 @@ async function generateLocalListings(localFileGlobs: string[], localSourceDir: s
 
 /**
  * 
- * @param configs 
+ * @param moduleNames
  * @param nodeModulePaths 
  * @param fileGlobs 
  */
-async function generateListings(configs: ModuleConfig[], nodeModulePaths: string[], fileGlobs: string[]): Promise<ModuleLookupListing[]> {
-    const moduleNames: string[] = configs.map(config => config.name);
+async function generateListings(moduleNames: string[], nodeModulePaths: string[], fileGlobs: string[]): Promise<FileListing[]> {
     const targetPaths: CrossProduct3 = crossProduct3(nodeModulePaths, moduleNames, fileGlobs);
 
     switch (targetPaths.type) {
@@ -80,7 +83,7 @@ async function generateListings(configs: ModuleConfig[], nodeModulePaths: string
  * 
  * @param moduleLookup 
  */
-async function extractImports(local: boolean, moduleLookup: ModuleLookupListing): Promise<ActionSource[]> {
+async function extractActionSources(local: boolean, moduleLookup: FileListing): Promise<ActionSource[]> {
     const imports: Promise<ActionSource[]> = Promise.all(moduleLookup.files.map(async (file: Uri) => {
         const textDocument = await workspace.openTextDocument(file);
         const module: ParsedModule = parser.parse(textDocument);
@@ -92,25 +95,10 @@ async function extractImports(local: boolean, moduleLookup: ModuleLookupListing)
 }
 
 /**
- * DTO for mapping files/modules to retain some context
+ * DTO for mapping files/modules to retain some context.
+ * Relates a module with the files that we care about from it.
  */
-export type ModuleLookupListing = {
+type FileListing = {
     moduleName: string,
     files: Uri[]
 }
-
-/**
- * Represents the type in the configuration for key "redux-action-finder.modules".
- */
-export type ModuleConfig = {
-    name: string,
-    sourceType: SourceType
-};
-
-/**
- * The source type for any given module. Use "script" if the file
- * exports as commonjs. "module" is used for es2015 syntax.
- */
-export type SourceType = "module" | "script";
-
-

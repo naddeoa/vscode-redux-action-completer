@@ -26,40 +26,35 @@
       "title": "Redux action completer",
       "properties": {
         "redux-action-finder.modules": {
-          "type": "[{name: string, sourceType: 'module' | 'script'}]",
+          "type": "string[]",
           "default": [],
-          "description": "Modules to search for actions. The sourceType should be 'module' if it uses export statements. It should be 'script' if it uses commonjs/require."
+          "description": "Modules to search for actions"
         },
         "redux-aciton-finder.fileGlobs": {
-          "type": "array",
+          "type": "string[]",
           "default": [],
           "description": "Glob patterns to match file names that contain actions"
         },
         "redux-aciton-finder.nodeModulePaths": {
-          "type": "array",
+          "type": "string[]",
           "default": [
             "node_modules"
           ],
           "description": "The paths of node module folders. Pretty much the same as the NODE_MODULES env variable."
         },
         "redux-aciton-finder.localFileGlobs": {
-          "type": "array",
+          "type": "string[]",
           "default": [
             "src/**/*Actions.js"
           ],
           "description": "Glob patterns to match local action files to."
         },
         "redux-aciton-finder.localSourceDir": {
-          "type": "array",
+          "type": "string[]",
           "default": [
             "src"
           ],
           "description": "Directory that local source is stored in for the active project."
-        },
-        "redux-aciton-finder.localSourceType": {
-          "type": "'module' | 'script'",
-          "default": "scrpt",
-          "description": "The sourceType should be 'module' if it uses export statements. It should be 'script' if it uses commonjs/require."
         }
       }
     }

@@ -13,8 +13,8 @@ export default class Plugin implements Disposable {
 
     constructor() {
         this.config = workspace.getConfiguration();
-        this.setup();
         this.require = this.require.bind(this);
+        this.setup();
     }
 
     private async setup() {
@@ -39,7 +39,7 @@ export default class Plugin implements Disposable {
     /**
      * Get all modules that should be searched for actions.
      */
-    getActionModules(): actions.ModuleConfig[] {
+    getActionModules(): string[] {
         return this.config.get("redux-action-finder.modules", []);
     }
 
@@ -64,10 +64,6 @@ export default class Plugin implements Disposable {
 
     getLocalSourceDir(): string {
         return this.config.get("redux-aciton-finder.localSourceDir", "src");
-    }
-
-    getLocalSourceType(): actions.SourceType {
-        return this.config.get("redux-aciton-finder.localSourceType", "script");
     }
 
     dispose() {
