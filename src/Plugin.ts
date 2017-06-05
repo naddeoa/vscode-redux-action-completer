@@ -58,10 +58,16 @@ export default class Plugin implements Disposable {
         return this.config.get("redux-aciton-finder.nodeModulePaths", ["node_modules"]);
     }
 
+    /**
+     * The file globs to use when searching for files locally.
+     */
     getLocalFileGlobs(): string[] {
         return this.config.get("redux-aciton-finder.localFileGlobs", [])
     }
 
+    /**
+     * Which source directories to search in locally.
+     */
     getLocalSourceDir(): string {
         return this.config.get("redux-aciton-finder.localSourceDir", "src");
     }

@@ -75,6 +75,7 @@
   "dependencies": {
     "@types/acorn": "^4.0.2",
     "@types/escodegen": "0.0.6",
+    "@types/estree": "0.0.35",
     "@types/lodash": "^4.14.64",
     "acorn": "^4.0.13",
     "escodegen": "^1.8.1",

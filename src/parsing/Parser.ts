@@ -144,10 +144,17 @@ class Parser {
             const parse = acorn.parse(doc.getText(), parseOptions);
             const results: SuccessfulParse = { type: "SuccessfulParse", value: parse, comments: onComment, tokens: onToken };
             this.parseCache.set(doc, results);
-            // escodegen.attachComments(parse, onComment, onToken);
+
+            try{
+                // Currently failing on ExportNamedDeclaration. Not sure why.
+                escodegen.attachComments(parse, onComment, onToken);
+            }catch(e){
+                console.error(`Could not attach comments to the ast. Will not be able to display any comments from actions for ${doc.fileName}`, e);
+            }
+
             return results;
         } catch (e) {
-            console.log(e);
+            console.error(e);
             return FAILED_PARSE;
         }
     }

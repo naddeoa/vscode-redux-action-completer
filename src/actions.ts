@@ -15,8 +15,8 @@ export async function getActions(plugin: Plugin): Promise<ActionSource[]> {
     const modules = await generateListings(plugin.getActionModules(), plugin.getNodeModulePaths(), plugin.getFileGlobs());
     const localFiles = await generateLocalListings(plugin.getLocalFileGlobs(), plugin.getLocalSourceDir());
 
-    const imports = await getAllImports(false, modules, plugin.require);
-    const localImports = await getAllImports(true, localFiles, plugin.require);
+    const imports = await getAllActionSources(false, modules, plugin.require);
+    const localImports = await getAllActionSources(true, localFiles, plugin.require);
     return imports.concat(localImports);
 }
 
@@ -26,20 +26,25 @@ export async function getActions(plugin: Plugin): Promise<ActionSource[]> {
  * @param localListings 
  * @param requireFn 
  */
-async function getAllImports(local: boolean, listings: FileListing[], requireFn: (path: string) => any): Promise<ActionSource[]> {
+async function getAllActionSources(local: boolean, listings: FileListing[], requireFn: (path: string) => any): Promise<ActionSource[]> {
 
     const imports: Promise<ActionSource[]>[] = flatMap(listings, async (moduleLookup: FileListing) => {
+        // First, try to require the files to find out which actions are exported
         try {
             return moduleLookup.files.map((file: Uri) => createGeneratedImport(local, file, Object.keys(requireFn(file.fsPath)), moduleLookup.moduleName));
         } catch (e) {
             console.error("Probably failed to require the file because it uses es2015. Will attempt to parse it next.", e);
         }
 
+        // If they can't be required because they are not commonjs, then assume they use es2015  exports and parse them
         try{
             return extractActionSources(local, moduleLookup);
         } catch(e){
             window.showWarningMessage(`Could not get actions for ${moduleLookup.moduleName}, skipping it.`);
         }
+
+        // If nothing works then pretend like nothing was found;;
+        return [];
     });
 
     return flatten(await Promise.all(imports));
