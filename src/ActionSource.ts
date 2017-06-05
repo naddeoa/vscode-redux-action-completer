@@ -58,5 +58,9 @@ function deriveDependencyImportName(path: string, moduleName: string): (doc: Tex
 }
 
 function deriveLocalImportName(path: string, moduleName: string): (doc: TextDocument) => string {
-    return (doc) => p.relative(doc.fileName, path);
+    return (doc) => {
+        const relativePath = p.relative(doc.fileName, path).replace(/^\.\./, ".");
+        const parsedPath = p.parse(relativePath);
+        return relativePath.replace(parsedPath.ext, "");
+    };
 }
