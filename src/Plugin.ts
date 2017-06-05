@@ -2,7 +2,7 @@ import ActionCompleter from './ActionCompleter';
 import { flatMap, map, reduce, flatten } from "lodash";
 import { Uri, languages, Disposable, WorkspaceConfiguration, workspace } from 'vscode';
 import { crossProduct3, Triple, CrossProduct3 } from "./util/cross-product";
-import parser, { Module, ParsedExport, getExportName } from "./parsing/Parser";
+import parser, { ParsedModule, ParsedExport, getExportName } from "./parsing/Parser";
 import * as actions from "./actions"; // TODO circular dependency
 import * as fs from "fs";
 

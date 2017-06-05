@@ -1,6 +1,5 @@
 import { Identifier, ImportDeclaration, ImportSpecifier, SimpleLiteral } from 'estree';
 
-
 export function createImportSpecifiers(names: string[]): ImportSpecifier[] {
     return names.map(name => {
         const identifier = createIdentifier(name);

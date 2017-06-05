@@ -15,40 +15,39 @@ import * as _ from 'lodash';
 import * as path from 'path';
 import { Disposable, TextDocument, workspace } from 'vscode';
 
-
-export class Module {
+export class ParsedModule {
     private readonly text: TextDocument;
-    private readonly parse: ParseResult;
+    private readonly parseResults: ParseResult;
 
     constructor(text: TextDocument, parse: ParseResult) {
         this.text = text;
-        this.parse = parse;
+        this.parseResults = parse;
     }
 
     getImports(): ParsedImports {
-        switch (this.parse.type) {
+        switch (this.parseResults.type) {
             case "FailedParse": return [];
             case "SuccessfulParse": {
-                return getAllImports(this.parse);
+                return getAllImports(this.parseResults);
             }
         }
     }
 
     getImportsForModule(targetModule: string): ParsedImports {
-        switch (this.parse.type) {
+        switch (this.parseResults.type) {
             case "FailedParse": return [];
             case "SuccessfulParse": {
-                return getImportsForModule(targetModule, this.parse);
+                return getImportsForModule(targetModule, this.parseResults);
             }
         }
 
     }
 
     getExports(): ParsedExports {
-        switch (this.parse.type) {
+        switch (this.parseResults.type) {
             case "FailedParse": return [];
             case "SuccessfulParse": {
-                return getAllExports(this.parse);
+                return getAllExports(this.parseResults);
             }
         }
     }
@@ -161,12 +160,12 @@ class Parser {
         return thing.getText();
     }
 
-    parse(textDocument: TextDocument): Module {
+    parse(textDocument: TextDocument): ParsedModule {
         const parse = this.tryParse(textDocument);
 
         switch (parse.type) {
-            case "FailedParse": return new Module(textDocument, FAILED_PARSE);
-            case "SuccessfulParse": return new Module(textDocument, parse);
+            case "FailedParse": return new ParsedModule(textDocument, FAILED_PARSE);
+            case "SuccessfulParse": return new ParsedModule(textDocument, parse);
         }
     }
 

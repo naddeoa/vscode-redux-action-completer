@@ -1,11 +1,11 @@
-import parser, { containsSpecifier, getLocationData, ParsedImport, Module } from './parsing/Parser';
+import parser, { containsSpecifier, getLocationData, ParsedImport, ParsedModule } from './parsing/Parser';
 import { renderImport } from './parsing/Renderer';
 import { Position, Range, TextDocument, TextEdit } from 'vscode';
 
 const NOOP_EDIT = TextEdit.insert(new Position(0, 0), "");
 
 export function addImportToDocument(textDocument: TextDocument, moduleName: string, specifier: string): TextEdit {
-    const module: Module = parser.parse(textDocument);
+    const module: ParsedModule = parser.parse(textDocument);
 
     const existingImports = module.getImportsForModule(moduleName);
 

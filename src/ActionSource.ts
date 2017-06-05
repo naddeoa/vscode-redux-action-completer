@@ -14,7 +14,7 @@ function basename(filepath: string) {
  * @param actions The actions inside of this module. It is assumed that everything exported from it are action creators/actions.
  * @param getImportName A function that returns the string that is used to import this statement. i.e. "my-app/actions/SomeActions""
  */
-export interface GeneratedImport {
+export interface ActionSource {
     path: string;
     fileName: string;
     moduleName: string,
@@ -22,7 +22,7 @@ export interface GeneratedImport {
     getImportName: (doc: TextDocument) => string
 }
 
-export function createGeneratedImport(local: boolean, { fsPath: path }: Uri, actions: string[], moduleName: string): GeneratedImport {
+export function createGeneratedImport(local: boolean, { fsPath: path }: Uri, actions: string[], moduleName: string): ActionSource {
     return {
         fileName: basename(path),
         path,

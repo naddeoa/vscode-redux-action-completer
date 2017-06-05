@@ -1,4 +1,4 @@
-import { GeneratedImport, createGeneratedImport } from "./GeneratedImport";
+import { ActionSource, createGeneratedImport } from "./ActionSource";
 import { flatMap } from "lodash";
 import { addImportToDocument } from "./DocumentUtils";
 import {
@@ -8,28 +8,27 @@ import {
     CancellationToken,
     CompletionItemKind,
     ProviderResult,
-    TextEdit,
     CompletionItem,
     CompletionList
 } from 'vscode';
 
 export default class ActionCompleter implements CompletionItemProvider {
 
-    private readonly imports: GeneratedImport[];
+    private readonly imports: ActionSource[];
 
-    constructor(imports: GeneratedImport[]) {
+    constructor(imports: ActionSource[]) {
         this.imports = imports;
     }
 
     provideCompletionItems(textDocument: TextDocument, position: Position, token: CancellationToken): ProviderResult<CompletionItem[] | CompletionList> {
         if (textDocument.lineAt(position.line).text.search("dispatch") !== -1) {
-            return flatMap(this.imports, (generatedImport: GeneratedImport) => generatedImport.actions.map((action: string) => {
+            return flatMap(this.imports, (actionSource: ActionSource) => actionSource.actions.map((action: string) => {
 
                 const item = new CompletionItem(action, CompletionItemKind.Function)
-                item.detail = generatedImport.fileName;
-                item.additionalTextEdits = [addImportToDocument(textDocument, generatedImport.getImportName(textDocument), action)];
-                item.filterText = `__${generatedImport.fileName}`;
-                item.documentation = `Redux action declared in ${generatedImport.moduleName}`;
+                item.detail = actionSource.fileName;
+                item.additionalTextEdits = [addImportToDocument(textDocument, actionSource.getImportName(textDocument), action)];
+                item.filterText = `__${actionSource.fileName}`;
+                item.documentation = `Redux action declared in ${actionSource.moduleName}`;
                 return item;
             }));
         }

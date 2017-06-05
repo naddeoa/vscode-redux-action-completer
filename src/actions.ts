@@ -1,7 +1,7 @@
 import { crossProduct3, Triple, CrossProduct3 } from "./util/cross-product";
-import { GeneratedImport, createGeneratedImport } from "./GeneratedImport";
+import { ActionSource, createGeneratedImport } from "./ActionSource";
 import { window, Uri, languages, Disposable, WorkspaceConfiguration, workspace } from 'vscode';
-import parser, { Module, ParsedExport, getExportName } from "./parsing/Parser";
+import parser, { ParsedModule, ParsedExport, getExportName } from "./parsing/Parser";
 import Plugin from "./Plugin";
 import { flatMap, map, reduce, flatten } from "lodash";
 
@@ -9,7 +9,7 @@ import { flatMap, map, reduce, flatten } from "lodash";
  * 
  * @param plugin 
  */
-export async function getActions(plugin: Plugin): Promise<GeneratedImport[]> {
+export async function getActions(plugin: Plugin): Promise<ActionSource[]> {
     // For now, just ignore module types. I don't have a great way of importing them without
     // having to parse the file with acorn. I can just use require on the script types.
     const modules = await generateListings(plugin.getActionModules(), plugin.getNodeModulePaths(), plugin.getFileGlobs());
@@ -26,9 +26,9 @@ export async function getActions(plugin: Plugin): Promise<GeneratedImport[]> {
  * @param localListings 
  * @param requireFn 
  */
-async function getAllImports(local: boolean, listings: ModuleLookupListing[], requireFn: (path: string) => any): Promise<GeneratedImport[]> {
+async function getAllImports(local: boolean, listings: ModuleLookupListing[], requireFn: (path: string) => any): Promise<ActionSource[]> {
 
-    const imports: Promise<GeneratedImport[]>[] = flatMap(listings, async (moduleLookup: ModuleLookupListing) => {
+    const imports: Promise<ActionSource[]>[] = flatMap(listings, async (moduleLookup: ModuleLookupListing) => {
         try {
             return moduleLookup.files.map((file: Uri) => createGeneratedImport(local, file, Object.keys(requireFn(file.fsPath)), moduleLookup.moduleName));
         } catch (e) {
@@ -80,13 +80,10 @@ async function generateListings(configs: ModuleConfig[], nodeModulePaths: string
  * 
  * @param moduleLookup 
  */
-async function extractImports(local: boolean, moduleLookup: ModuleLookupListing): Promise<GeneratedImport[]> {
-
-    // TODO Woo it works. So far, I can find local stuff and create imoprt statements, but I'm not
-    // generating the right relativve file paths in the import staements yet.
-    const imports: Promise<GeneratedImport[]> = Promise.all(moduleLookup.files.map(async (file: Uri) => {
+async function extractImports(local: boolean, moduleLookup: ModuleLookupListing): Promise<ActionSource[]> {
+    const imports: Promise<ActionSource[]> = Promise.all(moduleLookup.files.map(async (file: Uri) => {
         const textDocument = await workspace.openTextDocument(file);
-        const module: Module = parser.parse(textDocument);
+        const module: ParsedModule = parser.parse(textDocument);
         const actions = module.getExports().map(getExportName);
         return createGeneratedImport(local, file, flatten(actions), moduleLookup.moduleName);
     }));
@@ -111,7 +108,8 @@ export type ModuleConfig = {
 };
 
 /**
- * 
+ * The source type for any given module. Use "script" if the file
+ * exports as commonjs. "module" is used for es2015 syntax.
  */
 export type SourceType = "module" | "script";
 
