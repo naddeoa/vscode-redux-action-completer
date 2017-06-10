@@ -1,7 +1,13 @@
 {
   "name": "redux-action-completer",
   "displayName": "Redux action completer",
-  "description": "Autocomplete actions when dispatching in redux/flux applications",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/naddeoa/vscode-redux-action-completer"
+  },
+  "license": "BSD3",
+  "description": "Autocomplete actions when dispatching in redux/flux Javascript applications",
+  "icon": "misc/icon.png",
   "version": "0.0.1",
   "publisher": "naddeo",
   "engines": {
@@ -9,6 +15,12 @@
   },
   "categories": [
     "Other"
+  ],
+  "keywords": [
+    "redux",
+    "action",
+    "search",
+    "javascript"
   ],
   "activationEvents": [
     "onLanguage:javascript"

@@ -1,11 +1,19 @@
 ## Redux Action Completer for vscode 
 
+* Warning! This is definitely beta quality. Bug reports welcome.
+
 This visual studio code extension enables autocompletion of actions and action creators when dispatching. It is designed to address the problem of navigate large action libraries in redux applications. If you have issues with action discovery in your project then you might find this interesting.
 
 ```javascript
 // autocomplete from all known actions when dispatching
 dispatch(myAc...)
 ```
+
+![demo](https://fat.gfycat.com/InfantileEquatorialAmbushbug.gif)
+
+## Setup
+
+Open the workspace settings and add the configurations below to it. At the very least you'll have to add `redux-action-finder.modules` so the extension knows which dependencies to search. You can execute the `redux-action-finder.commands.refresh` by searching actions for "RAC" after you update your settings to refresh the extension.
 
 ## How it works
 
@@ -29,3 +37,12 @@ odules` folder then you don't have to change this.
 `redux-aciton-finder.localFileGlobs`: string[] (defaults to ["src/**/*Actions.js"]) - Glob patterns to match local action files to.
 
 `redux-aciton-finder.localSourceDir`: string[] (defaults to ["src"]) - Directory that local source is stored in for the active project.
+
+
+## License stuff
+
+Icon is a composite of two free icons.
+
+Magnifying glass created by [Elyounssi Wahib](https://www.iconfinder.com/Wahib).
+
+Atom created by [Alpár-Etele Méder](https://www.iconfinder.com/pocike)
